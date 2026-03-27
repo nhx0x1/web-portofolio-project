@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arch Linux - Hyprland Desktop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d0d12;
+            --bg-panel: #16161e;
+            --bg-float: #1a1b26;
+            --accent: #7aa2f7;
+            --accent-glow: rgba(122, 162, 247, 0.3);
+            --text-primary: #c0caf5;
+            --text-secondary: #565f89;
+            --text-muted: #414868;
+            --success: #9ece6a;
+            --warning: #e0af68;
+            --error: #f7768e;
+            --purple: #bb9af7;
+            --cyan: #7dcfff;
+            --orange: #ff9e64;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass: rgba(26, 27, 38, 0.75);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Inter', monospace;
+            background: var(--bg-dark);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            color: var(--text-primary);
+            user-select: none;
+        }
+
+        /* Background Layer */
+        .bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(122, 162, 247, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(187, 154, 247, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, #0d0d12 0%, #13131a 100%);
+        }
+
+        .bg-layer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(122, 162, 247, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(122, 162, 247, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.5;
+        }
+
+        /* Lock Screen */
+        .lock-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: 
+                linear-gradient(135deg, rgba(13, 13, 18, 0.95), rgba(22, 22, 30, 0.98)),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%230d0d12" width="1920" height="1080"/><circle cx="200" cy="800" r="300" fill="%237aa2f7" opacity="0.1" filter="blur(100px)"/><circle cx="1600" cy="200" r="250" fill="%23bb9af7" opacity="0.08" filter="blur(80px)"/></svg>');
+            background-size: cover;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .lock-screen.unlocked {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        .lock-container {
+            text-align: center;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .lock-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            margin: 0 auto 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 
+                0 20px 60px rgba(122, 162, 247, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lock-avatar::before {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .lock-user {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lock-hint {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .lock-input-wrapper {
+            position: relative;
+            width: 280px;
+            margin: 0 auto;
+        }
+
+        .lock-input {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .lock-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.15);
+        }
+
+        .lock-submit {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .lock-submit:hover {
+            background: var(--purple);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .lock-submit:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        /* Desktop */
+        .desktop {
+            position: fixed;
+            inset: 0;
+            opacity: 0;
+            transform: scale(0.98);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .desktop.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Waybar */
+        .waybar {
+            height: 36px;
+            background: rgba(22, 22, 30, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 0.85rem;
+            z-index: 100;
+        }
+
+        .waybar-left, .waybar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workspace {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ws-btn {
+            min-width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            position: relative;
+        }
+
+        .ws-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .ws-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px rgba(122, 162, 247, 0.4);
+        }
+
+        .ws-btn.occupied::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        .waybar-item {
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .waybar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .waybar-clock {
+            background: rgba(122, 162, 247, 0.15);
+            color: var(--accent);
+            font-weight: 600;
+            border: 1px solid rgba(122, 162, 247, 0.2);
+        }
+
+        /* Desktop Icons */
+        .desktop-grid {
+            flex: 1;
+            padding: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 90px);
+            grid-auto-rows: 100px;
+            gap: 20px;
+            align-content: start;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .desktop-icon:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-4px);
+        }
+
+        .desktop-icon:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        .icon-box {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            background: linear-gradient(135deg, rgba(122, 162, 247, 0.2), rgba(187, 154, 247, 0.15));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+            transition: all 0.3s;
+        }
+
+        .desktop-icon:hover .icon-box {
+            box-shadow: 
+                0 12px 40px rgba(122, 162, 247, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        }
+
+        .icon-label {
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Window System */
+        .window {
+            position: absolute;
+            background: rgba(26, 27, 38, 0.95);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 
+                0 25px 80px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+            overflow: hidden;
+            min-width: 500px;
+            min-height: 350px;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s;
+            backdrop-filter: blur(20px);
+        }
+
+        .window.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .window.focused {
+            box-shadow: 
+                0 30px 100px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(122, 162, 247, 0.3) inset;
+        }
+
+        .window-header {
+            height: 38px;
+            background: rgba(22, 22, 30, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+            border-bottom: 1px solid var(--border);
+            cursor: grab;
+            user-select: none;
+        }
+
+        .window-header:active {
+            cursor: grabbing;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .win-btn {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .win-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .win-btn:hover::after {
+            opacity: 1;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .win-close { background: var(--error); color: var(--error); }
+        .win-min { background: var(--warning); color: var(--warning); }
+        .win-max { background: var(--success); color: var(--success); }
+
+        .win-btn:hover {
+            transform: scale(1.15);
+        }
+
+        .window-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .window-content {
+            height: calc(100% - 38px);
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Terminal */
+        .terminal {
+            background: var(--bg-float);
+            padding: 16px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            height: 100%;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .term-line {
+            margin-bottom: 2px;
+            white-space: pre;
+            word-break: normal;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .term-prompt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .term-user { color: var(--accent); font-weight: 600; }
+        .term-at { color: var(--text-muted); }
+        .term-host { color: var(--success); font-weight: 600; }
+        .term-path { color: var(--cyan); }
+        .term-dollar { color: var(--text-primary); margin: 0 4px; }
+
+        .term-input-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .term-input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            flex: 1;
+            caret-color: var(--accent);
+            min-width: 50px;
+        }
+
+        .term-output {
+            color: var(--text-secondary);
+            margin: 8px 0 16px 0;
+            padding-left: 0;
+            line-height: 1.5;
+        }
+
+        .term-output.success { color: var(--success); }
+        .term-output.error { color: var(--error); }
+        .term-output.warning { color: var(--warning); }
+        .term-output.info { color: var(--cyan); }
+        .term-output.accent { color: var(--accent); }
+
+        .term-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.1em;
+            background: var(--accent);
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* File Manager */
+        .file-manager {
+            display: flex;
+            height: 100%;
+            background: var(--bg-float);
+        }
+
+        .fm-sidebar {
+            width: 200px;
+            background: rgba(22, 22, 30, 0.5);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .fm-nav-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .fm-nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .fm-nav-item.active {
+            background: rgba(122, 162, 247, 0.15);
+            color: var(--accent);
+        }
+
+        .fm-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fm-toolbar {
+            height: 44px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+        }
+
+        .fm-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .fm-breadcrumb span {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .fm-breadcrumb span:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .fm-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .fm-btn {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .fm-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .fm-content {
+            flex: 1;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+            align-content: start;
+            overflow-y: auto;
+        }
+
+        .fm-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .fm-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .fm-item.selected {
+            background: rgba(122, 162, 247, 0.2);
+            outline: 1px solid var(--accent);
+        }
+
+        .fm-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .fm-name {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fm-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: rgba(26, 27, 38, 0.98);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px;
+            min-width: 180px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: scale(0.96);
+            pointer-events: none;
+            transition: all 0.15s ease;
+            z-index: 9999;
+            backdrop-filter: blur(20px);
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: all;
+        }
+
+        .ctx-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: all 0.15s;
+        }
+
+        .ctx-item:hover {
+            background: rgba(122, 162, 247, 0.15);
+        }
+
+        .ctx-separator {
+            height: 1px;
+            background: var(--border);
+            margin: 6px 0;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: rgba(26, 27, 38, 0.98);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10000;
+            max-width: 320px;
+            backdrop-filter: blur(20px);
+        }
+
+        .notification.active {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notif-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notif-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: pre-line;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(122, 162, 247, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(122, 162, 247, 0.4);
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: slideIn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="bg-layer"></div>
+
+    <!-- Lock Screen -->
+    <div class="lock-screen" id="lockScreen">
+        <div class="lock-container">
+            <div class="lock-avatar">👤</div>
+            <div class="lock-user">developer</div>
+            <div class="lock-hint">Click arrow or press Enter to unlock</div>
+            <div class="lock-input-wrapper">
+                <input type="password" 
+                       class="lock-input" 
+                       placeholder="Password (any)" 
+                       id="lockInput" 
+                       autocomplete="off">
+                <button class="lock-submit" id="lockBtn">→</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop -->
+    <div class="desktop" id="desktop">
+        <!-- Waybar -->
+        <div class="waybar">
+            <div class="waybar-left">
+                <div class="workspace">
+                    <div class="ws-btn active" onclick="switchWorkspace(1)">1</div>
+                    <div class="ws-btn occupied" onclick="switchWorkspace(2)">2</div>
+                    <div class="ws-btn" onclick="switchWorkspace(3)">3</div>
+                    <div class="ws-btn" onclick="switchWorkspace(4)">4</div>
+                    <div class="ws-btn" onclick="switchWorkspace(5)">5</div>
+                </div>
+                <div class="waybar-item" style="margin-left: 16px;">
+                    <span>🖥️</span>
+                    <span id="activeWindow">Desktop</span>
+                </div>
+            </div>
+            <div class="waybar-right">
+                <div class="waybar-item" onclick="showNotification('Network', 'Connected: ArchWiFi-5G (1.2 Gbps)')">
+                    <span>📡</span>
+                </div>
+                <div class="waybar-item" onclick="showNotification('Volume', 'Output: 75%')">
+                    <span>🔊</span>
+                </div>
+                <div class="waybar-item" onclick="showNotification('Battery', 'AC Power • 100% Charged')">
+                    <span>🔋</span>
+                    <span>100%</span>
+                </div>
+                <div class="waybar-item waybar-clock" id="clock">14:32</div>
+            </div>
+        </div>
+
+        <!-- Desktop Icons -->
+        <div class="desktop-grid" oncontextmenu="showContextMenu(event, 'desktop')">
+            <div class="desktop-icon" onclick="openTerminal()">
+                <div class="icon-box">🖥️</div>
+                <span class="icon-label">Terminal</span>
+            </div>
+            <div class="desktop-icon" onclick="openFileManager()">
+                <div class="icon-box">📁</div>
+                <span class="icon-label">Files</span>
+            </div>
+            <div class="desktop-icon" onclick="showNotification('Info', 'Portfolio v1.0\nArch Linux + Hyprland Theme')">
+                <div class="icon-box">📄</div>
+                <span class="icon-label">README</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Windows Container -->
+    <div id="windowsContainer"></div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="ctx-item" onclick="handleCtx('open')"><span>📂</span> Open</div>
+        <div class="ctx-item" onclick="handleCtx('copy')"><span>📋</span> Copy</div>
+        <div class="ctx-item" onclick="handleCtx('rename')"><span>✏️</span> Rename</div>
+        <div class="ctx-separator"></div>
+        <div class="ctx-item" onclick="handleCtx('terminal')"><span>🖥️</span> Open in Terminal</div>
+        <div class="ctx-separator"></div>
+        <div class="ctx-item" onclick="handleCtx('lock')" style="color: var(--error)"><span>🔒</span> Lock Screen</div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div class="notif-title" id="notifTitle">Title</div>
+        <div class="notif-text" id="notifText">Message</div>
+    </div>
+
+    <script>
+        // State
+        let windowCount = 0;
+        let activeWindowId = null;
+        let zIndex = 100;
+        const windows = new Map();
+        const terminals = new Map();
+
+        // File cache
+        const fileCache = {
+            fastfetch: null,
+            hack: null,
+            loaded: false
+        };
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = 
+                now.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit', hour12: false});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Load external files with better error handling
+        async function loadExternalFiles() {
+            console.log('Loading external files...');
+            
+            // Try multiple possible paths
+            const paths = [
+                'files/terminal/fastfetch.txt',
+                './files/terminal/fastfetch.txt',
+                '/files/terminal/fastfetch.txt',
+                '../files/terminal/fastfetch.txt'
+            ];
+            
+            for (const path of paths) {
+                try {
+                    console.log('Trying:', path);
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        fileCache.fastfetch = await response.text();
+                        console.log('✓ Loaded fastfetch.txt from:', path);
+                        break;
+                    }
+                } catch (e) {
+                    console.log('✗ Failed:', path, e.message);
+                }
+            }
+            
+            // Try hack.txt
+            const hackPaths = [
+                'files/terminal/hack.txt',
+                './files/terminal/hack.txt',
+                '/files/terminal/hack.txt',
+                '../files/terminal/hack.txt'
+            ];
+            
+            for (const path of hackPaths) {
+                try {
+                    console.log('Trying:', path);
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        fileCache.hack = await response.text();
+                        console.log('✓ Loaded hack.txt from:', path);
+                        break;
+                    }
+                } catch (e) {
+                    console.log('✗ Failed:', path, e.message);
+                }
+            }
+            
+            fileCache.loaded = true;
+            console.log('File cache:', fileCache);
+        }
+
+        // Lock Screen Functions
+        function unlock() {
+            console.log('Unlocking...');
+            const lockScreen = document.getElementById('lockScreen');
+            const desktop = document.getElementById('desktop');
+            
+            lockScreen.classList.add('unlocked');
+            
+            setTimeout(() => {
+                desktop.classList.add('active');
+                showNotification('Welcome', 'Session started: developer@hyprland');
+            }, 300);
+        }
+
+        // Setup lock screen event listeners
+        function setupLockScreen() {
+            const lockInput = document.getElementById('lockInput');
+            const lockBtn = document.getElementById('lockBtn');
+            const lockScreen = document.getElementById('lockScreen');
+
+            lockInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    unlock();
+                }
+            });
+
+            lockBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                unlock();
+            });
+
+            lockScreen.addEventListener('click', function(e) {
+                if (e.target === lockScreen || e.target.closest('.lock-container')) {
+                    if (!e.target.closest('.lock-input') && !e.target.closest('.lock-submit')) {
+                        unlock();
+                    }
+                }
+            });
+
+            lockInput.focus();
+        }
+
+        // Window Management
+        function createWindow(title, content, width = 700, height = 450) {
+            windowCount++;
+            const id = `win-${windowCount}`;
+            const x = 100 + (windowCount * 30) % 200;
+            const y = 80 + (windowCount * 30) % 150;
+
+            const win = document.createElement('div');
+            win.className = 'window';
+            win.id = id;
+            win.style.width = width + 'px';
+            win.style.height = height + 'px';
+            win.style.left = x + 'px';
+            win.style.top = y + 'px';
+            win.style.zIndex = ++zIndex;
+
+            win.innerHTML = `
+                <div class="window-header" onmousedown="startDrag(event, '${id}')">
+                    <div class="window-controls">
+                        <div class="win-btn win-close" onclick="closeWindow('${id}')"></div>
+                        <div class="win-btn win-min" onclick="minimizeWindow('${id}')"></div>
+                        <div class="win-btn win-max" onclick="maximizeWindow('${id}')"></div>
+                    </div>
+                    <span class="window-title">${title}</span>
+                    <div style="width: 50px;"></div>
+                </div>
+                <div class="window-content" onmousedown="focusWindow('${id}')">
+                    ${content}
+                </div>
+            `;
+
+            document.getElementById('windowsContainer').appendChild(win);
+            windows.set(id, { element: win, x, y, width, height, maximized: false });
+
+            requestAnimationFrame(() => {
+                win.classList.add('active');
+                focusWindow(id);
+            });
+
+            return id;
+        }
+
+        function closeWindow(id) {
+            const win = windows.get(id);
+            if (!win) return;
+            
+            if (terminals.has(id)) {
+                terminals.delete(id);
+            }
+            
+            win.element.style.opacity = '0';
+            win.element.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                win.element.remove();
+                windows.delete(id);
+            }, 300);
+        }
+
+        function minimizeWindow(id) {
+            const win = windows.get(id);
+            if (!win) return;
+            win.element.style.display = 'none';
+        }
+
+        function maximizeWindow(id) {
+            const win = windows.get(id);
+            if (!win) return;
+
+            if (win.maximized) {
+                win.element.style.left = win.x + 'px';
+                win.element.style.top = win.y + 'px';
+                win.element.style.width = win.width + 'px';
+                win.element.style.height = win.height + 'px';
+                win.maximized = false;
+            } else {
+                win.element.style.left = '0';
+                win.element.style.top = '36px';
+                win.element.style.width = '100%';
+                win.element.style.height = 'calc(100% - 36px)';
+                win.maximized = true;
+            }
+        }
+
+        function focusWindow(id) {
+            const win = windows.get(id);
+            if (!win) return;
+            
+            activeWindowId = id;
+            win.element.style.zIndex = ++zIndex;
+            win.element.classList.add('focused');
+            
+            windows.forEach((w, key) => {
+                if (key !== id) w.element.classList.remove('focused');
+            });
+
+            document.getElementById('activeWindow').textContent = win.element.querySelector('.window-title').textContent;
+            
+            const termInput = win.element.querySelector('.term-input');
+            if (termInput) {
+                setTimeout(() => termInput.focus(), 50);
+            }
+        }
+
+        // Drag
+        let dragState = null;
+
+        function startDrag(e, id) {
+            if (e.target.closest('.window-controls')) return;
+            
+            const win = windows.get(id);
+            if (!win || win.maximized) return;
+
+            focusWindow(id);
+            
+            const rect = win.element.getBoundingClientRect();
+            dragState = {
+                id,
+                offsetX: e.clientX - rect.left,
+                offsetY: e.clientY - rect.top,
+                element: win.element
+            };
+
+            document.body.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragState) return;
+            
+            const x = e.clientX - dragState.offsetX;
+            const y = e.clientY - dragState.offsetY;
+            
+            dragState.element.style.left = x + 'px';
+            dragState.element.style.top = y + 'px';
+            dragState.element.style.transform = 'none';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (dragState) {
+                const win = windows.get(dragState.id);
+                if (win) {
+                    win.x = parseInt(dragState.element.style.left);
+                    win.y = parseInt(dragState.element.style.top);
+                }
+                dragState = null;
+                document.body.style.cursor = '';
+            }
+        });
+
+        // Terminal
+        const terminalScenarios = {
+            'ls': 'Documents  Downloads  Music  Pictures  Projects  Videos  workspace',
+            'pwd': '/home/developer',
+            'whoami': 'developer',
+            'date': () => new Date().toString(),
+            'uname -a': 'Linux hyprland 6.7.0-arch3-1 #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux',
+            'clear': null,
+            'help': `Available commands:
+  fastfetch, ff      Display system info (pretty)
+  neofetch           Alias for fastfetch
+  ls                 List directory contents
+  pwd                Print working directory
+  whoami             Display current user
+  date               Show current date/time
+  uname -a           Show kernel info
+  clear              Clear terminal screen
+  sudo pacman -Syyu  Update system packages
+  sudo hacker        Initiate "hack" sequence
+  exit               Close terminal`,
+            'cat about.txt': `Name: Developer Portfolio
+Role: Full Stack Developer
+Location: Arch Linux / Hyprland
+Skills: JavaScript, Python, Rust, Go
+Status: Available for hire
+
+Contact: developer@portfolio.local`,
+            'sudo pacman -Syyu': null,
+            'sudo hacker': null,
+            'exit': null
+        };
+
+        function getBuiltInFastfetch() {
+            const logo = [
+                "                  -`                     ",
+                "                 .o+`                    ",
+                "                `ooo/                    ",
+                "               `+oooo:                   ",
+                "              `+oooooo:                  ",
+                "              -+oooooo+:                 ",
+                "            `/:-:++oooo+:                ",
+                "           `/++++/+++++++:               ",
+                "          `/++++++++++++++:              ",
+                "         `/+++ooooooooooooo/`            ",
+                "        ./ooosssso++osssssso+`           ",
+                "       .oossssso-````/ossssss+`          ",
+                "      -osssssso.      :ssssssso.         ",
+                "     :osssssss/        osssso+++.        ",
+                "    /ossssssss/        +ssssooo/-        ",
+                "  `/ossssso+/:-        -:/+osssso+-      ",
+                " `+sso+:-`                 `.-/+oso:     ",
+                "`++:.                           `-/+/    ",
+                ".`                                 `/    "
+            ];
+
+            const info = [
+                "Developer@archlinux",
+                "----------------",
+                "OS: Arch Linux x86_64",
+                "Host: archlinux (2.58.0)",
+                "Kernel: Linux 6.7.0-arch3-1",
+                "Uptime: 9999 hours, 38 mins",
+                "Packages: 911 (pacman)",
+                "Shell: fish 4.3.3",
+                "WM: 10 (Hyprland)",
+                "Terminal: Kitty",
+                "CPU: AMD Inter Celeron 9x Temu (8) @ 2.79 GHz",
+                "GPU: AMD Intel celereron GraphX Gen 9 (786.46 GiB) [Integrated]",
+                "Memory: 9 GiB / 999 GiB (9%)",
+                "Swap: 2 GiB / 8.00 GiB (0%)",
+                "Disk (/): 10 GiB / 920 TiB (1%) - ext4",
+                "Disk (/dev/nvme0n1p90): 920 TiB",
+                "Local IP (eth0): 192.168.13.37/20",
+                "Battery: 100% [AC Connected]",
+                "Locale: en_US.UTF-8"
+            ];
+
+            let output = '';
+            const maxLines = Math.max(logo.length, info.length);
+            
+            for (let i = 0; i < maxLines; i++) {
+                const logoLine = logo[i] || ' '.repeat(40);
+                const infoLine = info[i] || '';
+                
+                const coloredLogo = `<span style="color: var(--accent)">${escapeHtml(logoLine)}</span>`;
+                
+                let coloredInfo = escapeHtml(infoLine)
+                    .replace(/(Developer@archlinux)/, '<span style="color: var(--accent); font-weight: 600">$1</span>')
+                    .replace(/(OS:|Host:|Kernel:|Uptime:|Packages:|Shell:|WM:|Terminal:|CPU:|GPU:|Memory:|Swap:|Disk|Local IP|Battery:|Locale:)/g, '<span style="color: var(--accent)">$1</span>')
+                    .replace(/(Arch Linux|hyprland|fish|Hyprland|Kitty|AMD|Intel|Temu|ext4|en_US.UTF-8)/g, '<span style="color: var(--text-primary)">$1</span>')
+                    .replace(/(9999 hours|911|4.3.3|9x|2.79 GHz|786.46 GiB|9 GiB|999 GiB|9%|2 GiB|8.00 GiB|0%|10 GiB|920 TiB|1%|192.168.13.37\/20|100%)/g, '<span style="color: var(--success)">$1</span>');
+                
+                output += `<div class="term-line">${coloredLogo}${coloredInfo}</div>`;
+            }
+            
+            return output;
+        }
+
+        function parseFastfetchFromFile(content) {
+            const lines = content.split('\n');
+            let output = '';
+            
+            for (let line of lines) {
+                let coloredLine = escapeHtml(line)
+                    .replace(/(OS:|Host:|Kernel:|Uptime:|Packages:|Shell:|WM:|Terminal:|CPU:|GPU:|Memory:|Swap:|Disk|Local IP|Battery:|Locale:)/g, '<span style="color: var(--accent)">$1</span>')
+                    .replace(/(\d+ hours|\d+|\d+\.\d+|\d+ GiB|\d+ TiB|\d+%|\d+\.\d+ GHz|\d+\.\d+\.\d+[\w-]+|en_US.UTF-8)/g, '<span style="color: var(--success)">$1</span>');
+                
+                // Color the arch logo characters at the start
+                if (line.trim().startsWith('-') || line.includes('`') || line.includes('.') || line.includes('+') || line.includes('/') || line.includes('o') || line.includes(':')) {
+                    const logoMatch = line.match(/^(\s*[\.\-`\+o\/:\\]+)/);
+                    if (logoMatch && line.length < 50) {
+                        coloredLine = `<span style="color: var(--accent)">${escapeHtml(logoMatch[1])}</span>${escapeHtml(line.substring(logoMatch[1].length))}`
+                            .replace(/(OS:|Host:|Kernel:|Uptime:|Packages:|Shell:|WM:|Terminal:|CPU:|GPU:|Memory:|Swap:|Disk|Local IP|Battery:|Locale:)/g, '<span style="color: var(--accent)">$1</span>')
+                            .replace(/(\d+ hours|\d+|d\+|\d+\.\d+|\d+ GiB|\d+ TiB|\d+%|\d+\.\d+ GHz|\d+\.\d+\.\d+[\w-]+|en_US.UTF-8)/g, '<span style="color: var(--success)">$1</span>');
+                    }
+                }
+                
+                output += `<div class="term-line">${coloredLine}</div>`;
+            }
+            
+            return output;
+        }
+
+        function openTerminal() {
+            const winId = createWindow('kitty', '', 900, 550);
+            const win = windows.get(winId);
+            const contentDiv = win.element.querySelector('.window-content');
+            
+            contentDiv.innerHTML = `
+                <div class="terminal" id="term-${winId}">
+                    <div id="term-content-${winId}">
+                        <div class="term-line" style="color: var(--text-secondary); margin-bottom: 12px;">
+                            <span style="color: var(--accent)">❯</span> Type 'fastfetch' or 'help' for available commands
+                        </div>
+                    </div>
+                    <div class="term-input-line" id="input-line-${winId}">
+                        <span class="term-user">developer</span>
+                        <span class="term-at">@</span>
+                        <span class="term-host">hyprland</span>
+                        <span class="term-path">~</span>
+                        <span class="term-dollar">❯</span>
+                        <input type="text" class="term-input" id="term-input-${winId}" spellcheck="false" autocomplete="off" autofocus>
+                    </div>
+                </div>
+            `;
+
+            const termState = {
+                history: [],
+                historyIndex: -1,
+                currentCmd: ''
+            };
+            terminals.set(winId, termState);
+
+            const input = document.getElementById(`term-input-${winId}`);
+            const content = document.getElementById(`term-content-${winId}`);
+            const inputLine = document.getElementById(`input-line-${winId}`);
+
+            setTimeout(() => input.focus(), 100);
+            
+            input.addEventListener('keydown', function(e) {
+                // Ctrl+Q to close window
+                if (e.ctrlKey && e.key === 'q') {
+                    e.preventDefault();
+                    closeWindow(winId);
+                    return;
+                }
+                
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const cmd = this.value.trim();
+                    
+                    if (cmd) {
+                        termState.history.push(cmd);
+                        termState.historyIndex = termState.history.length;
+                        
+                        const cmdLine = document.createElement('div');
+                        cmdLine.className = 'term-line';
+                        cmdLine.innerHTML = `
+                            <span class="term-user">developer</span>
+                            <span class="term-at">@</span>
+                            <span class="term-host">hyprland</span>
+                            <span class="term-path">~</span>
+                            <span class="term-dollar">❯</span>
+                            <span style="color: var(--text-primary); margin-left: 4px;">${escapeHtml(cmd)}</span>
+                        `;
+                        content.appendChild(cmdLine);
+                        
+                        inputLine.style.display = 'none';
+                        processCommand(cmd, content, winId, inputLine);
+                    }
+                    
+                    this.value = '';
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (termState.historyIndex > 0) {
+                        termState.historyIndex--;
+                        this.value = termState.history[termState.historyIndex];
+                    }
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (termState.historyIndex < termState.history.length - 1) {
+                        termState.historyIndex++;
+                        this.value = termState.history[termState.historyIndex];
+                    } else {
+                        termState.historyIndex = termState.history.length;
+                        this.value = '';
+                    }
+                } else if (e.key === 'l' && e.ctrlKey) {
+                    e.preventDefault();
+                    content.innerHTML = '';
+                } else if (e.key === 'c' && e.ctrlKey) {
+                    e.preventDefault();
+                    this.value = '';
+                    const cancelLine = document.createElement('div');
+                    cancelLine.className = 'term-line';
+                    cancelLine.innerHTML = '<span style="color: var(--error)">^C</span>';
+                    content.appendChild(cancelLine);
+                    showInputLine();
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                if (activeWindowId === winId) {
+                    setTimeout(() => input.focus(), 10);
+                }
+            });
+
+            function showInputLine() {
+                content.appendChild(inputLine);
+                inputLine.style.display = 'flex';
+                input.focus();
+                content.scrollTop = content.scrollHeight;
+            }
+
+            function processCommand(cmd, content, winId, inputLine) {
+                const lowerCmd = cmd.toLowerCase();
+                
+                if (lowerCmd === 'exit') {
+                    setTimeout(() => closeWindow(winId), 300);
+                    return;
+                }
+                
+                if (lowerCmd === 'clear') {
+                    content.innerHTML = '';
+                    showInputLine();
+                    return;
+                }
+                
+                if (lowerCmd === 'fastfetch' || lowerCmd === 'ff' || lowerCmd === 'neofetch') {
+                    const output = document.createElement('div');
+                    output.className = 'term-output';
+                    output.style.margin = '8px 0 16px 0';
+                    
+                    // DEBUG: Show which source is being used
+                    console.log('Fastfetch cache:', fileCache.fastfetch ? 'EXTERNAL' : 'BUILT-IN');
+                    
+                    if (fileCache.fastfetch) {
+                        output.innerHTML = parseFastfetchFromFile(fileCache.fastfetch);
+                    } else {
+                        output.innerHTML = getBuiltInFastfetch();
+                    }
+                    
+                    content.appendChild(output);
+                    showInputLine();
+                    return;
+                }
+                
+                if (lowerCmd === 'sudo pacman -syyu' || lowerCmd === 'sudo pacman -syyu') {
+                    runPacmanUpdate(content, inputLine);
+                    return;
+                }
+                
+                if (lowerCmd === 'sudo hacker' || lowerCmd.startsWith('sudo hacker')) {
+                    runHackerMode(content, inputLine);
+                    return;
+                }
+                
+                const output = document.createElement('div');
+                output.className = 'term-output';
+                
+                if (terminalScenarios[lowerCmd] !== undefined) {
+                    const result = terminalScenarios[lowerCmd];
+                    if (typeof result === 'function') {
+                        output.textContent = result();
+                    } else if (result !== null) {
+                        output.innerHTML = result;
+                    }
+                    content.appendChild(output);
+                } else if (lowerCmd.startsWith('echo ')) {
+                    output.textContent = cmd.substring(5);
+                    content.appendChild(output);
+                } else if (lowerCmd === '') {
+                    // Empty
+                } else {
+                    output.innerHTML = `<span style="color: var(--error)">fish: Unknown command: ${escapeHtml(cmd.split(' ')[0])}</span>`;
+                    content.appendChild(output);
+                }
+                
+                showInputLine();
+            }
+
+            function runPacmanUpdate(content, inputLine) {
+                const steps = [
+                    { text: '[sudo] password for developer:', delay: 500 },
+                    { text: ':: Synchronizing package databases...', delay: 800 },
+                    { text: ' core                  157.5 KiB   854 KiB/s 00:00 [######################] 100%', delay: 100 },
+                    { text: ' extra                1754.3 KiB  3.42 MiB/s 00:01 [######################] 100%', delay: 100 },
+                    { text: ' community               7.5 MiB  7.12 MiB/s 00:01 [######################] 100%', delay: 100 },
+                    { text: ' multilib              172.4 KiB  2.81 MiB/s 00:00 [######################] 100%', delay: 100 },
+                    { text: '', delay: 200 },
+                    { text: ':: Starting full system upgrade...', delay: 600 },
+                    { text: 'resolving dependencies...', delay: 300 },
+                    { text: 'looking for conflicting packages...', delay: 300 },
+                    { text: '', delay: 200 },
+                    { text: 'Packages (12) chromium-120.0.6099.199-1  firefox-121.0.1-1  git-2.43.0-1', delay: 100 },
+                    { text: '              hyprland-0.34.0-1  kitty-0.31.0-1  neovim-0.9.5-1', delay: 100 },
+                    { text: '', delay: 200 },
+                    { text: 'Total Download Size:    445.67 MiB', delay: 100 },
+                    { text: ':: Proceed with installation? [Y/n] y', delay: 800 },
+                    { text: ':: Retrieving packages...', delay: 500 },
+                    { text: ' chromium-120.0.6...   102.4 MiB  8.56 MiB/s 00:12 [######################] 100%', delay: 100 },
+                    { text: ' firefox-121.0.1-...    73.8 MiB  7.21 MiB/s 00:10 [######################] 100%', delay: 100 },
+                    { text: ' rust-1.75.0-1-x...    154.3 MiB  9.64 MiB/s 00:16 [######################] 100%', delay: 100 },
+                    { text: '(12/12) checking package integrity                 [######################] 100%', delay: 100 },
+                    { text: '(12/12) loading package files                      [######################] 100%', delay: 100 },
+                    { text: ':: Processing package changes...', delay: 300 },
+                    { text: '( 1/12) upgrading chromium                         [######################] 100%', delay: 100 },
+                    { text: '(12/12) upgrading zsh                              [######################] 100%', delay: 100 },
+                    { text: ':: Running post-transaction hooks...', delay: 300 },
+                    { text: '(1/7) Arming ConditionNeedsUpdate...', delay: 100 },
+                    { text: '(7/7) Updating X font indexes...', delay: 100 },
+                    { text: '', delay: 200 },
+                    { text: ':: System upgrade complete!', delay: 100 }
+                ];
+                
+                let i = 0;
+                function nextStep() {
+                    if (i >= steps.length) {
+                        content.appendChild(inputLine);
+                        inputLine.style.display = 'flex';
+                        input.focus();
+                        content.scrollTop = content.scrollHeight;
+                        return;
+                    }
+                    
+                    const step = steps[i];
+                    const line = document.createElement('div');
+                    line.className = 'term-line';
+                    
+                    let text = step.text;
+                    if (text.includes('100%')) {
+                        text = text.replace(/(\d{2}:\d{2}.*$)/, '<span style="color: var(--success)">$1</span>');
+                    }
+                    if (text.includes(' MiB')) {
+                        text = text.replace(/(\d+\.\d+ MiB)/g, '<span style="color: var(--cyan)">$1</span>');
+                    }
+                    if (text.startsWith('::')) {
+                        text = `<span style="color: var(--accent)">${text}</span>`;
+                    }
+                    
+                    line.innerHTML = text;
+                    content.appendChild(line);
+                    content.scrollTop = content.scrollHeight;
+                    
+                    i++;
+                    setTimeout(nextStep, step.delay);
+                }
+                
+                nextStep();
+            }
+
+            function runHackerMode(content, inputLine) {
+                // DEBUG
+                console.log('Hack cache:', fileCache.hack ? 'EXTERNAL' : 'BUILT-IN');
+                
+                // Use external file if available
+                if (fileCache.hack) {
+                    const lines = fileCache.hack.split('\n');
+                    let i = 0;
+                    function typeLine() {
+                        if (i >= lines.length) {
+                            content.appendChild(inputLine);
+                            inputLine.style.display = 'flex';
+                            input.focus();
+                            content.scrollTop = content.scrollHeight;
+                            return;
+                        }
+                        
+                        const line = document.createElement('div');
+                        line.className = 'term-line';
+                        line.textContent = lines[i];
+                        content.appendChild(line);
+                        content.scrollTop = content.scrollHeight;
+                        
+                        i++;
+                        setTimeout(typeLine, Math.random() * 150 + 50);
+                    }
+                    typeLine();
+                    return;
+                }
+
+                // Built-in fallback
+                const lines = [
+                    '<span style="color: var(--error)">⚠ WARNING: UNAUTHORIZED ACCESS DETECTED ⚠</span>',
+                    '',
+                    'Initializing hack sequence...',
+                    '[<span style="color: var(--success)">████</span>] 25% Bypassing firewall...',
+                    '[<span style="color: var(--success)">████████</span>] 50% Injecting payload...',
+                    '[<span style="color: var(--success)">████████████</span>] 75% Extracting data...',
+                    '[<span style="color: var(--success)">████████████████</span>] 100% <span style="color: var(--error)">ACCESS GRANTED</span>',
+                    '',
+                    '<span style="color: var(--accent)">Target:</span> NASA Mainframe',
+                    '<span style="color: var(--accent)">IP:</span> 192.168.1.1',
+                    '<span style="color: var(--accent)">Status:</span> ROOT ACCESS ACHIEVED',
+                    '',
+                    'Downloading classified files...',
+                    '> satellite_imagery_classified.zip <span style="color: var(--success)">████████████████████ 2.4GB/2.4GB</span>',
+                    '> alien_contact_protocols.pdf <span style="color: var(--success)">████████████████████ 45MB/45MB</span>',
+                    '> zero_day_exploits.db <span style="color: var(--success)">████████████████████ 128MB/128MB</span>',
+                    '',
+                    'Trace route initiated...',
+                    'Hop 1: 10.0.0.1 (Gateway)',
+                    'Hop 2: 172.16.0.5 (ISP Router)',
+                    'Hop 3: 192.168.100.1 (Target Network)',
+                    'Hop 4: 10.20.30.40 (NASA Subnet)',
+                    'Hop 5: 192.168.1.1 (<span style="color: var(--error)">TARGET ACQUIRED</span>)',
+                    '',
+                    '<span style="color: var(--warning)">⚡ SYSTEM COMPROMISED ⚡</span>',
+                    '🎭 Identity Masked: 47.89.123.45 (Proxied through 7 nodes)',
+                    '🔐 Encryption: AES-256-GCM',
+                    '🌐 Tor Circuit: Established',
+                    '💰 Crypto Wallet: 0x4a3F...9e2B (Balance: 1337 BTC)',
+                    '',
+                    '<span style="color: var(--accent)">Just kidding! This is a portfolio demo.</span>',
+                    '<span style="color: var(--text-muted)">No systems were harmed in the making of this terminal. 😄</span>'
+                ];
+                
+                let i = 0;
+                function typeLine() {
+                    if (i >= lines.length) {
+                        content.appendChild(inputLine);
+                        inputLine.style.display = 'flex';
+                        input.focus();
+                        content.scrollTop = content.scrollHeight;
+                        return;
+                    }
+                    
+                    const line = document.createElement('div');
+                    line.className = 'term-line';
+                    line.innerHTML = lines[i];
+                    content.appendChild(line);
+                    content.scrollTop = content.scrollHeight;
+                    
+                    i++;
+                    setTimeout(typeLine, Math.random() * 150 + 50);
+                }
+                
+                typeLine();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // File Manager
+        const fileSystem = {
+            'Home': [
+                { name: 'Documents', type: 'folder', size: '--', icon: '📁' },
+                { name: 'Downloads', type: 'folder', size: '--', icon: '📁' },
+                { name: 'Pictures', type: 'folder', size: '--', icon: '📁' },
+                { name: 'Projects', type: 'folder', size: '--', icon: '📂' },
+                { name: 'Music', type: 'folder', size: '--', icon: '📁' },
+                { name: 'Videos', type: 'folder', size: '--', icon: '📁' },
+                { name: 'about.txt', type: 'file', size: '245 B', icon: '📄' },
+                { name: 'resume.pdf', type: 'file', size: '1.2 MB', icon: '📑' },
+                { name: 'script.sh', type: 'file', size: '4 KB', icon: '📜' }
+            ],
+            'Projects': [
+                { name: 'web-portfolio', type: 'folder', size: '--', icon: '🌐' },
+                { name: 'rust-cli', type: 'folder', size: '--', icon: '🦀' },
+                { name: 'python-api', type: 'folder', size: '--', icon: '🐍' },
+                { name: 'hyprland-config', type: 'folder', size: '--', icon: '⚙️' },
+                { name: 'README.md', type: 'file', size: '2 KB', icon: '📝' }
+            ],
+            'Certificates': [
+                { name: 'AWS-SAA.pdf', type: 'file', size: '450 KB', icon: '📜' },
+                { name: 'CKA.pdf', type: 'file', size: '380 KB', icon: '📜' },
+                { name: 'RHCSA.pdf', type: 'file', size: '420 KB', icon: '📜' }
+            ]
+        };
+
+        let currentPath = 'Home';
+
+        function openFileManager(path = 'Home') {
+            currentPath = path;
+            const items = fileSystem[path] || fileSystem['Home'];
+            
+            const content = `
+                <div class="file-manager">
+                    <div class="fm-sidebar">
+                        <div class="fm-nav-item ${path === 'Home' ? 'active' : ''}" onclick="navigateFm('Home')">
+                            <span>🏠</span> Home
+                        </div>
+                        <div class="fm-nav-item ${path === 'Projects' ? 'active' : ''}" onclick="navigateFm('Projects')">
+                            <span>💼</span> Projects
+                        </div>
+                        <div class="fm-nav-item ${path === 'Certificates' ? 'active' : ''}" onclick="navigateFm('Certificates')">
+                            <span>📜</span> Certificates
+                        </div>
+                        <div style="flex: 1;"></div>
+                        <div class="fm-nav-item" onclick="showNotification('Storage', 'Used: 245GB / 512GB')">
+                            <span>💾</span> Storage
+                        </div>
+                    </div>
+                    <div class="fm-main">
+                        <div class="fm-toolbar">
+                            <div class="fm-breadcrumb">
+                                <span>📁</span>
+                                <span>home</span>
+                                <span style="color: var(--text-muted)">/</span>
+                                <span>developer</span>
+                                <span style="color: var(--text-muted)">/</span>
+                                <span style="color: var(--accent)">${path.toLowerCase()}</span>
+                            </div>
+                            <div class="fm-actions">
+                                <button class="fm-btn" onclick="showNotification('New Folder', 'Creating new folder...')">+ New</button>
+                                <button class="fm-btn" onclick="showNotification('View', 'Toggling view mode')">☰</button>
+                            </div>
+                        </div>
+                        <div class="fm-content" oncontextmenu="showContextMenu(event, 'file')">
+                            ${items.map((item, idx) => `
+                                <div class="fm-item" onclick="selectFmItem(this)" ondblclick="openFmItem('${item.name}', '${item.type}')">
+                                    <div class="fm-icon">${item.icon}</div>
+                                    <div class="fm-name">${item.name}</div>
+                                    <div class="fm-meta">${item.size}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            let fmWin = Array.from(windows.entries()).find(([id, w]) => 
+                w.element.querySelector('.window-title').textContent === 'Thunar'
+            );
+            
+            if (fmWin) {
+                fmWin[1].element.querySelector('.window-content').innerHTML = content;
+                focusWindow(fmWin[0]);
+            } else {
+                createWindow('Thunar', content, 800, 500);
+            }
+        }
+
+        function navigateFm(path) {
+            openFileManager(path);
+        }
+
+        function selectFmItem(el) {
+            document.querySelectorAll('.fm-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function openFmItem(name, type) {
+            if (type === 'folder') {
+                if (fileSystem[name]) {
+                    navigateFm(name);
+                } else {
+                    showNotification('Error', `Cannot open "${name}": Permission denied`);
+                }
+            } else {
+                if (name.endsWith('.pdf')) {
+                    showNotification('PDF Viewer', `Opening ${name}...`);
+                } else if (name.endsWith('.txt') || name.endsWith('.md')) {
+                    showNotification('Text Editor', `Opening ${name} in neovim...`);
+                } else {
+                    showNotification('File', `Opening ${name}...`);
+                }
+            }
+        }
+
+        // Context Menu
+        let ctxTarget = null;
+
+        function showContextMenu(e, type) {
+            e.preventDefault();
+            ctxTarget = type;
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = Math.min(e.pageX, window.innerWidth - 200) + 'px';
+            menu.style.top = Math.min(e.pageY, window.innerHeight - 250) + 'px';
+            menu.classList.add('active');
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').classList.remove('active');
+        }
+
+        function handleCtx(action) {
+            hideContextMenu();
+            switch(action) {
+                case 'open': showNotification('Open', 'Opening selected item...'); break;
+                case 'copy': showNotification('Clipboard', 'Copied to clipboard'); break;
+                case 'rename': showNotification('Rename', 'Rename dialog would open here'); break;
+                case 'terminal': openTerminal(); break;
+                case 'lock': location.reload(); break;
+            }
+        }
+
+        // Notification
+        let notifTimeout;
+        function showNotification(title, text) {
+            const notif = document.getElementById('notification');
+            document.getElementById('notifTitle').textContent = title;
+            document.getElementById('notifText').textContent = text;
+            notif.classList.add('active');
+            clearTimeout(notifTimeout);
+            notifTimeout = setTimeout(() => notif.classList.remove('active'), 4000);
+        }
+
+        // Workspace
+        function switchWorkspace(n) {
+            document.querySelectorAll('.ws-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 1 === n);
+            });
+        }
+
+        // Global events
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.context-menu')) hideContextMenu();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideContextMenu();
+            if (e.metaKey && e.key === 'Enter') openTerminal();
+            if (e.metaKey && e.key === 'e') openFileManager();
+        });
+
+        // Initialize
+        window.onload = async () => {
+            await loadExternalFiles();
+            setupLockScreen();
+        };
+    </script>
+</body>
+</html>

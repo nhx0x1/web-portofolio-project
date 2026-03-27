@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyprland Desktop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #1a1b26;
+            --bg-darker: #16161e;
+            --accent: #7aa2f7;
+            --accent-glow: rgba(122, 162, 247, 0.4);
+            --glass-bg: rgba(26, 27, 38, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #c0caf5;
+            --text-secondary: #565f89;
+            --success: #9ece6a;
+            --warning: #e0af68;
+            --error: #f7768e;
+            --purple: #bb9af7;
+            --cyan: #7dcfff;
+        }
+
+        body {
+            font-family: 'Inter', 'JetBrains Mono', sans-serif;
+            background: #0d0d12;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            color: var(--text-primary);
+        }
+
+        /* Animated Background */
+        .bg-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(122, 162, 247, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(187, 154, 247, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(125, 207, 255, 0.1) 0%, transparent 40%),
+                linear-gradient(135deg, #0d0d12 0%, #1a1b26 50%, #16161e 100%);
+            animation: bgMove 20s ease-in-out infinite;
+        }
+
+        .bg-mesh {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(122, 162, 247, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(122, 162, 247, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.5;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(2%, 2%) rotate(1deg); }
+            66% { transform: translate(-1%, 1%) rotate(-1deg); }
+        }
+
+        /* Particles */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0;
+            animation: float 15s infinite;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Login Screen (SDDM Style) */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .login-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.1);
+        }
+
+        .login-container {
+            position: relative;
+            padding: 3rem;
+            border-radius: 24px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+                0 0 100px rgba(122, 162, 247, 0.1);
+            transform: translateY(0);
+            animation: loginFloat 6s ease-in-out infinite;
+            min-width: 380px;
+        }
+
+        @keyframes loginFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, 
+                transparent 40%, 
+                rgba(122, 162, 247, 0.3) 50%, 
+                transparent 60%);
+            border-radius: 26px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .login-container:hover::before {
+            opacity: 1;
+            animation: borderGlow 3s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .user-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: 0 10px 40px rgba(122, 162, 247, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .user-avatar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+        }
+
+        .user-avatar svg {
+            width: 50px;
+            height: 50px;
+            fill: white;
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.1);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            color: white;
+            box-shadow: 0 4px 20px rgba(122, 162, 247, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(122, 162, 247, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Desktop Environment */
+        .desktop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .desktop.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Waybar Style Top Bar */
+        .waybar {
+            height: 38px;
+            background: rgba(22, 22, 30, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 50;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .waybar-section {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .waybar-item {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .waybar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .workspace {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .workspace-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--text-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .workspace-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .workspace-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 10px rgba(122, 162, 247, 0.5);
+        }
+
+        .workspace-btn.occupied::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        .window-title {
+            color: var(--text-secondary);
+            margin-left: 1rem;
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* System Tray */
+        .systray {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tray-icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+
+        .tray-icon:hover {
+            opacity: 1;
+        }
+
+        .battery {
+            color: var(--success);
+        }
+
+        .network {
+            color: var(--cyan);
+        }
+
+        .volume {
+            color: var(--purple);
+        }
+
+        .clock {
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 0.25rem 0.75rem;
+            background: rgba(122, 162, 247, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(122, 162, 247, 0.2);
+        }
+
+        /* Desktop Content */
+        .desktop-content {
+            flex: 1;
+            position: relative;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-auto-rows: 100px;
+            gap: 1.5rem;
+            align-content: start;
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-4px);
+        }
+
+        .desktop-icon:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, rgba(122, 162, 247, 0.2), rgba(187, 154, 247, 0.2));
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon-label {
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Terminal Window */
+        .window {
+            position: absolute;
+            background: rgba(26, 27, 38, 0.95);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            min-width: 600px;
+            min-height: 400px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+        }
+
+        .window.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .window-header {
+            height: 36px;
+            background: rgba(22, 22, 30, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            border-bottom: 1px solid var(--glass-border);
+            cursor: move;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .window-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .btn-close { background: var(--error); }
+        .btn-minimize { background: var(--warning); }
+        .btn-maximize { background: var(--success); }
+
+        .window-title-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .window-content {
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            height: calc(100% - 36px);
+            overflow-y: auto;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .prompt {
+            color: var(--success);
+        }
+
+        .prompt-user {
+            color: var(--accent);
+        }
+
+        .command {
+            color: var(--text-primary);
+        }
+
+        .output {
+            color: var(--text-secondary);
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background: rgba(26, 27, 38, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.5rem;
+            min-width: 200px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: all;
+        }
+
+        .menu-item {
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            color: var(--text-primary);
+        }
+
+        .menu-item:hover {
+            background: rgba(122, 162, 247, 0.15);
+        }
+
+        .menu-item.danger {
+            color: var(--error);
+        }
+
+        .menu-item.danger:hover {
+            background: rgba(247, 118, 142, 0.15);
+        }
+
+        .menu-separator {
+            height: 1px;
+            background: var(--glass-border);
+            margin: 0.5rem 0;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(122, 162, 247, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(122, 162, 247, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .login-container {
+                min-width: 90%;
+                margin: 1rem;
+            }
+            
+            .waybar {
+                font-size: 0.75rem;
+                padding: 0 0.5rem;
+            }
+            
+            .window {
+                min-width: 90vw;
+                min-height: 60vh;
+            }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            background: rgba(26, 27, 38, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .notification.active {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .notification-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background -->
+    <div class="bg-container">
+        <div class="bg-gradient"></div>
+        <div class="bg-mesh"></div>
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <!-- Login Screen (SDDM Style) -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <div class="user-avatar">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+            </div>
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">arch@hyprland ~ $ startx</p>
+            
+            <div class="input-group">
+                <input type="text" class="input-field" placeholder="Username" value="arch" id="username">
+            </div>
+            
+            <div class="input-group">
+                <input type="password" class="input-field" placeholder="Password" id="password">
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="shutdown()">
+                    <span>Exit</span>
+                </button>
+                <button class="btn btn-primary" onclick="login()">
+                    <span>Login</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Environment -->
+    <div class="desktop" id="desktop">
+        <!-- Waybar -->
+        <div class="waybar">
+            <div class="waybar-section">
+                <div class="workspace">
+                    <div class="workspace-btn active" onclick="switchWorkspace(1)">1</div>
+                    <div class="workspace-btn occupied" onclick="switchWorkspace(2)">2</div>
+                    <div class="workspace-btn" onclick="switchWorkspace(3)">3</div>
+                    <div class="workspace-btn" onclick="switchWorkspace(4)">4</div>
+                    <div class="workspace-btn" onclick="switchWorkspace(5)">5</div>
+                </div>
+                <div class="window-title">kitty ~</div>
+            </div>
+            
+            <div class="waybar-section systray">
+                <div class="waybar-item network" onclick="showNotification('Network', 'Connected to WiFi: ArchLinux-5G')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3C7.46 3 3.34 4.78.29 7.67c-.18.18-.29.43-.29.71 0 .28.11.53.29.71l11 11c.39.39 1.02.39 1.41 0l11-11c.18-.18.29-.43.29-.71 0-.28-.11-.53-.29-.71C20.66 4.78 16.54 3 12 3z"/>
+                    </svg>
+                </div>
+                <div class="waybar-item volume" onclick="showNotification('Volume', 'Volume: 75%')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                    </svg>
+                </div>
+                <div class="waybar-item battery" onclick="showNotification('Battery', 'Battery: 85% - Charging')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/>
+                    </svg>
+                    <span>85%</span>
+                </div>
+                <div class="waybar-item clock" id="clock">10:42</div>
+            </div>
+        </div>
+
+        <!-- Desktop Content -->
+        <div class="desktop-content" id="desktopContent" oncontextmenu="showContextMenu(event)">
+            <div class="desktop-icon" onclick="openTerminal()">
+                <div class="icon-box">🖥️</div>
+                <span class="icon-label">Terminal</span>
+            </div>
+            <div class="desktop-icon" onclick="showNotification('File Manager', 'Opening Thunar...')">
+                <div class="icon-box">📁</div>
+                <span class="icon-label">Files</span>
+            </div>
+            <div class="desktop-icon" onclick="showNotification('Browser', 'Launching Firefox...')">
+                <div class="icon-box">🌐</div>
+                <span class="icon-label">Firefox</span>
+            </div>
+            <div class="desktop-icon" onclick="showNotification('Editor', 'Opening Neovim...')">
+                <div class="icon-box">📝</div>
+                <span class="icon-label">Neovim</span>
+            </div>
+            <div class="desktop-icon" onclick="showNotification('Settings', 'Opening Settings...')">
+                <div class="icon-box">⚙️</div>
+                <span class="icon-label">Settings</span>
+            </div>
+            <div class="desktop-icon" onclick="logout()">
+                <div class="icon-box">🚪</div>
+                <span class="icon-label">Logout</span>
+            </div>
+        </div>
+
+        <!-- Terminal Window -->
+        <div class="window" id="terminalWindow">
+            <div class="window-header">
+                <div class="window-controls">
+                    <div class="window-btn btn-close" onclick="closeTerminal()"></div>
+                    <div class="window-btn btn-minimize"></div>
+                    <div class="window-btn btn-maximize"></div>
+                </div>
+                <span class="window-title-text">kitty ~</span>
+                <div style="width: 50px;"></div>
+            </div>
+            <div class="window-content">
+                <div class="terminal-line">
+                    <span class="prompt-user">arch</span>
+                    <span style="color: var(--text-secondary)">@</span>
+                    <span class="prompt">hyprland</span>
+                    <span style="color: var(--text-secondary)">:~$</span>
+                    <span class="command">neofetch</span>
+                </div>
+                <div class="output" style="line-height: 1.6;">
+                    <span style="color: var(--accent)">                   -`</span>                    <span style="color: var(--accent)">arch</span>@<span style="color: var(--accent)">hyprland</span><br>
+                    <span style="color: var(--accent)">                  .o+`</span>                   ----------------<br>
+                    <span style="color: var(--accent)">                 `ooo/</span>                   <span style="color: var(--accent)">OS:</span> Arch Linux x86_64<br>
+                    <span style="color: var(--accent)">                `+oooo:</span>                  <span style="color: var(--accent)">Kernel:</span> 6.7.0-arch<br>
+                    <span style="color: var(--accent)">               `+oooooo:</span>                 <span style="color: var(--accent)">WM:</span> Hyprland<br>
+                    <span style="color: var(--accent)">               -+oooooo+:</span>                <span style="color: var(--accent)">Shell:</span> zsh<br>
+                    <span style="color: var(--accent)">             `/:-:++oooo+:</span>               <span style="color: var(--accent)">Terminal:</span> kitty<br>
+                    <span style="color: var(--accent)">            `/++++/+++++++:</span>              <span style="color: var(--accent)">CPU:</span> AMD Ryzen 9 5900X<br>
+                    <span style="color: var(--accent)">           `/++++++++++++++:</span>             <span style="color: var(--accent)">GPU:</span> NVIDIA RTX 3080<br>
+                    <span style="color: var(--accent)">          `/+++ooooooooooooo/`</span>            <span style="color: var(--accent)">Memory:</span> 16GB / 32GB<br>
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt-user">arch</span>
+                    <span style="color: var(--text-secondary)">@</span>
+                    <span class="prompt">hyprland</span>
+                    <span style="color: var(--text-secondary)">:~$</span>
+                    <span class="command loading">_</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="menu-item" onclick="openTerminal(); hideContextMenu()">
+            <span>🖥️</span> Open Terminal
+        </div>
+        <div class="menu-item" onclick="showNotification('Wallpaper', 'Changing wallpaper...'); hideContextMenu()">
+            <span>🖼️</span> Change Wallpaper
+        </div>
+        <div class="menu-item" onclick="showNotification('Widgets', 'Toggling widgets...'); hideContextMenu()">
+            <span>📊</span> Toggle Widgets
+        </div>
+        <div class="menu-separator"></div>
+        <div class="menu-item danger" onclick="logout(); hideContextMenu()">
+            <span>🚪</span> Logout
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div class="notification-title" id="notifTitle">Title</div>
+        <div class="notification-text" id="notifText">Message</div>
+    </div>
+
+    <script>
+        // Create particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Clock update
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+            document.getElementById('clock').textContent = time;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Login function
+        function login() {
+            const loginScreen = document.getElementById('loginScreen');
+            const desktop = document.getElementById('desktop');
+            
+            // Morph animation
+            loginScreen.classList.add('hidden');
+            
+            setTimeout(() => {
+                desktop.classList.add('active');
+                showNotification('Welcome', 'Session started successfully');
+            }, 400);
+        }
+
+        // Logout function
+        function logout() {
+            const loginScreen = document.getElementById('loginScreen');
+            const desktop = document.getElementById('desktop');
+            const terminal = document.getElementById('terminalWindow');
+            
+            desktop.classList.remove('active');
+            terminal.classList.remove('active');
+            
+            setTimeout(() => {
+                loginScreen.classList.remove('hidden');
+                document.getElementById('password').value = '';
+            }, 400);
+        }
+
+        // Shutdown
+        function shutdown() {
+            document.body.style.transition = 'opacity 0.5s';
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;color:#7aa2f7;font-family:JetBrains Mono;">System halted.</div>';
+                document.body.style.opacity = '1';
+            }, 500);
+        }
+
+        // Window management
+        function openTerminal() {
+            const terminal = document.getElementById('terminalWindow');
+            terminal.classList.add('active');
+        }
+
+        function closeTerminal() {
+            document.getElementById('terminalWindow').classList.remove('active');
+        }
+
+        // Workspace switching
+        function switchWorkspace(num) {
+            document.querySelectorAll('.workspace-btn').forEach((btn, idx) => {
+                if (idx + 1 === num) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // Context menu
+        function showContextMenu(e) {
+            e.preventDefault();
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.classList.add('active');
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').classList.remove('active');
+        }
+
+        // Close context menu on click elsewhere
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.context-menu')) {
+                hideContextMenu();
+            }
+        });
+
+        // Notification system
+        let notifTimeout;
+        function showNotification(title, text) {
+            const notif = document.getElementById('notification');
+            document.getElementById('notifTitle').textContent = title;
+            document.getElementById('notifText').textContent = text;
+            
+            notif.classList.add('active');
+            
+            clearTimeout(notifTimeout);
+            notifTimeout = setTimeout(() => {
+                notif.classList.remove('active');
+            }, 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Super + Enter = Terminal
+            if (e.metaKey && e.key === 'Enter') {
+                e.preventDefault();
+                openTerminal();
+            }
+            // Super + Q = Close window
+            if (e.metaKey && e.key === 'q') {
+                e.preventDefault();
+                closeTerminal();
+            }
+            // Escape = Close context menu
+            if (e.key === 'Escape') {
+                hideContextMenu();
+            }
+        });
+
+        // Draggable window
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        const windowHeader = document.querySelector('.window-header');
+        const terminalWindow = document.getElementById('terminalWindow');
+
+        windowHeader.addEventListener('mousedown', dragStart);
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('mousemove', drag);
+
+        function dragStart(e) {
+            if (e.target.closest('.window-controls')) return;
+            
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === windowHeader || e.target.closest('.window-header')) {
+                isDragging = true;
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                terminalWindow.style.transform = `translate(calc(-50% + ${currentX}px), calc(-50% + ${currentY}px)) scale(1)`;
+            }
+        }
+    </script>
+</body>
+</html>
